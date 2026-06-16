@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정수기 제품군 포지셔닝 맵</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background: #fafaf8;
+  color: #1a1a18;
+  padding: 32px 28px 48px;
+  min-height: 100vh;
+}
+
+h1 { font-size: 21px; font-weight: 500; margin-bottom: 5px; }
+.sub { font-size: 13px; color: #888780; margin-bottom: 28px; }
+
+.filter-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px;
+}
+.filter-btn {
+  padding: 5px 14px; border-radius: 20px; border: 1.5px solid #d3d1c7;
+  background: #fff; font-size: 12px; cursor: pointer; color: #444441;
+  transition: all 0.15s; font-family: inherit;
+}
+.filter-btn:hover { border-color: #888780; }
+.filter-btn.active { color: #fff; border-color: transparent; }
+
+.map-container {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.plot-wrap {
+  position: relative;
+  margin: 0 60px 50px 70px;
+  height: 580px;
+  border-left: 1.5px solid #b4b2a9;
+  border-bottom: 1.5px solid #b4b2a9;
+}
+
+.y-axis-label {
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+}
+.y-axis-label span {
+  transform: rotate(-90deg);
+  white-space: nowrap;
+  font-size: 12px;
+  color: #888780;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+
+.x-axis-label {
+  position: absolute;
+  bottom: 12px;
+  left: 70px;
+  right: 60px;
+  text-align: center;
+  font-size: 12px;
+  color: #888780;
+  font-weight: 500;
+}
+
+.axis-arrow-x {
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  bottom: 28px;
+  left: 70px;
+  right: 60px;
+  font-size: 11px;
+  color: #b4b2a9;
+}
+
+.quadrant-label {
+  position: absolute;
+  font-size: 10.5px;
+  color: #c8c6be;
+  pointer-events: none;
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+.mid-vline {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  border-left: 1px dashed #d3d1c7;
+  pointer-events: none;
+}
+.mid-hline {
+  position: absolute;
+  left: 0; right: 0;
+  top: 45%;
+  border-top: 1px dashed #d3d1c7;
+  pointer-events: none;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s, box-shadow 0.18s;
+  border-width: 2px;
+  border-style: solid;
+}
+.bubble:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 10;
+}
+.bubble-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  user-select: none;
+  pointer-events: none;
+  padding: 2px;
+}
+
+.legend-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #f1efe8;
+  border-radius: 10px;
+  max-width: 1000px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #444441;
+}
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border-width: 2px;
+  border-style: solid;
+  flex-shrink: 0;
+}
+
+.tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #d3d1c7;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 12px;
+  max-width: 260px;
+  pointer-events: none;
+  display: none;
+  z-index: 999;
+  line-height: 1.6;
+}
+.tooltip-brand {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.tooltip-series {
+  font-size: 12px;
+  color: #5f5e5a;
+  margin-bottom: 8px;
+}
+.tooltip-hr { border: none; border-top: 0.5px solid #d3d1c7; margin: 8px 0; }
+.tooltip-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 3px; }
+.tooltip-key { color: #888780; }
+.tooltip-val { font-weight: 500; text-align: right; }
+.tooltip-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 3px; }
+.ttag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 400;
+}
+.size-note {
+  font-size: 11px;
+  color: #888780;
+  margin-top: 6px;
+  text-align: right;
+  max-width: 1000px;
+}
+</style>
+</head>
+<body>
+
+<h1>정수기 제품군 포지셔닝 맵</h1>
+<p class="sub">X축: 월 렌탈 가격대 (저가 → 고가) &nbsp;|&nbsp; Y축: 기능 복잡도 (기본 → 프리미엄) &nbsp;|&nbsp; 원 크기: 해당 가격대 제품 수</p>
+
+<div class="filter-row" id="filterRow"></div>
+
+<div class="map-container">
+  <div class="y-axis-label"><span>기본기능 ← 기능 복잡도 → 프리미엄</span></div>
+  <div class="x-axis-label">월 렌탈 가격대 (저가 → 고가)</div>
+  <div class="axis-arrow-x"><span>← 저가 (1~2만원)</span><span>중가 (2~4만원)</span><span>고가 (4만원+) →</span></div>
+  <div class="plot-wrap" id="plotArea">
+    <div class="mid-vline"></div>
+    <div class="mid-hline"></div>
+    <div class="quadrant-label" style="left:2%;top:3%">저가 · 고기능</div>
+    <div class="quadrant-label" style="right:2%;top:3%">고가 · 고기능</div>
+    <div class="quadrant-label" style="left:2%;bottom:4%">저가 · 기본</div>
+    <div class="quadrant-label" style="right:2%;bottom:4%">고가 · 기본</div>
+  </div>
+</div>
+
+<div class="size-note">원 크기 = 해당 제품군 내 SKU 수 (비례)</div>
+
+<div class="legend-wrap" id="legend"></div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const brandColors = {
+  '코웨이':    { border: '#185FA5', bg: 'rgba(55,138,221,0.15)', text: '#0c447c' },
+  '청호나이스':{ border: '#854F0B', bg: 'rgba(186,117,23,0.15)', text: '#633806' },
+  '쿠쿠홈시스':{ border: '#A32D2D', bg: 'rgba(226,75,74,0.14)', text: '#791F1F' },
+  '교원웰스':  { border: '#3B6D11', bg: 'rgba(99,153,34,0.15)', text: '#27500A' },
+  'LG전자':   { border: '#534AB7', bg: 'rgba(127,119,221,0.15)', text: '#3C3489' },
+  'SK매직':   { border: '#633806', bg: 'rgba(186,117,23,0.12)', text: '#412402' },
+};
+
+// Product group data
+// x: 0~100 (price axis), y: 0~100 (feature axis)
+// size: number of SKUs in this segment
+const products = [
+
+  // ── 코웨이 ──
+  { brand:'코웨이', series:'아이콘 라인 (직수형)', type:'냉온정수기', tier:'저가',
+    x:14, y:72, size:4,
+    rental:'12,950~14,950원', lump:'1,140,000~1,400,000원',
+    features:'나노트랩 필터, UV살균, IoT, 무빙파우셋',
+    tags:['직수','UV살균','IoT','무빙파우셋'] },
+
+  { brand:'코웨이', series:'노블 라인 (프리미엄 직수)', type:'냉온정수기',  tier:'중가',
+    x:38, y:80, size:4,
+    rental:'31,400~36,400원', lump:'1,440,000~1,700,000원',
+    features:'무빙파우셋, UV살균, 음성지원, 스마트진단, IoT',
+    tags:['직수','UV살균','IoT','음성인식','빌트인옵션'] },
+
+  { brand:'코웨이', series:'엘리트 라인', type:'냉온정수기', tier:'중가',
+    x:34, y:68, size:2,
+    rental:'28,900~30,900원', lump:'1,200,000~1,560,000원',
+    features:'RO필터, 맞춤추출, MY용량',
+    tags:['RO필터','맞춤추출','빌트인옵션'] },
+
+  { brand:'코웨이', series:'아이콘 얼음 라인', type:'얼음정수기', tier:'중가',
+    x:26, y:85, size:4,
+    rental:'20,200~24,450원', lump:'2,170,000~2,770,000원',
+    features:'얼음+탄산, UV살균, IoT, 음성지원, 고온살균',
+    tags:['얼음','탄산','UV살균','IoT','고온살균'] },
+
+  { brand:'코웨이', series:'아이스 스탠드 라인', type:'스탠드형 얼음정수기', tier:'고가',
+    x:68, y:90, size:5,
+    rental:'48,900~60,100원', lump:'2,430,000~3,310,000원',
+    features:'대용량 얼음(1~5.2kg), RO필터, UV살균, 스탠드형',
+    tags:['스탠드형','대용량얼음','RO','UV살균'] },
+
+  { brand:'코웨이', series:'프라임 스탠드', type:'스탠드형 냉온정수기', tier:'고가',
+    x:58, y:72, size:2,
+    rental:'44,900~51,900원', lump:'2,040,000~2,060,000원',
+    features:'RO필터, UV살균, 스탠드형, 대용량 탱크',
+    tags:['스탠드형','RO','UV살균'] },
+
+  { brand:'코웨이', series:'스위치·나노직수 (무전원)', type:'정수전용', tier:'저가',
+    x:20, y:30, size:3,
+    rental:'15,900~20,900원', lump:'716,400~770,000원',
+    features:'무전원, 직수, 원터치필터교체, 연속추출',
+    tags:['무전원','직수','자가관리'] },
+
+  // ── 청호나이스 ──
+  { brand:'청호나이스', series:'TIDY·COMPACT (일반정수)', type:'정수전용', tier:'저가',
+    x:16, y:22, size:3,
+    rental:'10,900~15,900원', lump:'330,000~1,485,000원',
+    features:'역삼투압, 기본 정수 전용',
+    tags:['역삼투압','기본형'] },
+
+  { brand:'청호나이스', series:'셀프·러블리트리 (소형직수)', type:'냉온정수기', tier:'저가',
+    x:20, y:48, size:4,
+    rental:'13,450~17,900원', lump:'1,432,000~1,898,000원',
+    features:'직수, 자가관리, 소형, 양전하필터',
+    tags:['직수','자가관리','소형'] },
+
+  { brand:'청호나이스', series:'ANNIE·TOTA 라인 (중형)', type:'냉온정수기', tier:'중가',
+    x:28, y:58, size:8,
+    rental:'19,900~29,900원', lump:'1,572,000~2,630,000원',
+    features:'직수/역삼투압, 냉온정, 방문관리',
+    tags:['직수','역삼투압','냉온정'] },
+
+  { brand:'청호나이스', series:'OMNi·아이스트리 플리 (얼음)', type:'얼음정수기', tier:'중가',
+    x:32, y:75, size:5,
+    rental:'22,450~29,900원', lump:'1,695,000~2,025,000원',
+    features:'역삼투압, 얼음기능, 냉온정, 방문관리',
+    tags:['역삼투압','얼음','냉온정'] },
+
+  { brand:'청호나이스', series:'메타·디지털·550 (대형)', type:'냉온정수기', tier:'중가~고가',
+    x:46, y:68, size:5,
+    rental:'31,900~49,900원', lump:'1,830,000~2,784,000원',
+    features:'역삼투압, 대용량탱크, 스탠드/펌프형 옵션',
+    tags:['역삼투압','대용량','스탠드형'] },
+
+  { brand:'청호나이스', series:'슈퍼·700 얼음 (대형 얼음)', type:'대형 얼음정수기', tier:'고가',
+    x:58, y:88, size:4,
+    rental:'48,900~59,900원', lump:'2,388,000~4,560,000원',
+    features:'역삼투압, 대용량얼음(1.2~4.0kg), 스탠드형, 방문관리',
+    tags:['역삼투압','대용량얼음','스탠드형'] },
+
+  { brand:'청호나이스', series:'에스프레카페 (커피+얼음)', type:'커피얼음정수기', tier:'고가',
+    x:62, y:95, size:1,
+    rental:'48,900원', lump:'2,346,000원',
+    features:'에스프레소 기능 내장, 얼음, 역삼투압, 플래그십',
+    tags:['커피기능','얼음','역삼투압','플래그십'] },
+
+  { brand:'청호나이스', series:'아이스트리 큐브3 (카페용 얼음)', type:'업소용 얼음정수기', tier:'고가',
+    x:72, y:82, size:1,
+    rental:'59,900원', lump:'-',
+    features:'대용량 큐브 얼음, 직수, 업소용',
+    tags:['큐브얼음','업소용','직수'] },
+
+  // ── 쿠쿠홈시스 ──
+  { brand:'쿠쿠홈시스', series:'혼족·직수 (정수전용 소형)', type:'정수전용', tier:'저가',
+    x:15, y:20, size:4,
+    rental:'12,900~16,900원', lump:'399,000~1,850,000원',
+    features:'직수, 무전원, 자가관리, 소형',
+    tags:['직수','무전원','소형','자가관리'] },
+
+  { brand:'쿠쿠홈시스', series:'100도·스팀 라인 (끓인물)', type:'냉온정수기', tier:'저가',
+    x:18, y:62, size:6,
+    rental:'11,950~13,950원', lump:'2,050,000~2,300,000원',
+    features:'100도 끓인물, 스팀살균, 바리스타 기능',
+    tags:['끓인물','스팀살균','바리스타옵션'] },
+
+  { brand:'쿠쿠홈시스', series:'인스퓨어 냉온 (중형)', type:'냉온정수기', tier:'저가~중가',
+    x:22, y:46, size:8,
+    rental:'13,900~22,900원', lump:'499,000~699,000원',
+    features:'냉온정, 방문관리, 코크살균 옵션',
+    tags:['냉온정','방문관리','코크살균옵션'] },
+
+  { brand:'쿠쿠홈시스', series:'인스퓨어 미니100 (초소형)', type:'냉온정수기', tier:'저가',
+    x:17, y:70, size:6,
+    rental:'14,450원', lump:'2,400,000원',
+    features:'초소형, 냉온정, 셀프관리 가능',
+    tags:['초소형','냉온정','셀프관리'] },
+
+  { brand:'쿠쿠홈시스', series:'제로100 슬림 얼음 라인', type:'얼음정수기', tier:'중가',
+    x:26, y:80, size:7,
+    rental:'19,950~20,950원', lump:'2,750,000~2,900,000원',
+    features:'100도 끓인물+얼음, 스팀살균, 바리스타 옵션',
+    tags:['끓인물얼음','스팀살균','바리스타옵션'] },
+
+  { brand:'쿠쿠홈시스', series:'대용량 냉온 (업소·가족형)', type:'대용량정수기', tier:'중가',
+    x:34, y:52, size:8,
+    rental:'21,900~32,900원', lump:'699,000~2,450,000원',
+    features:'대용량, RO/나노포지티브, 방문관리',
+    tags:['대용량','방문관리','RO옵션'] },
+
+  { brand:'쿠쿠홈시스', series:'대용량 얼음·스탠드 (업소)', type:'대용량 얼음정수기', tier:'고가',
+    x:62, y:88, size:5,
+    rental:'42,900~58,900원', lump:'2,490,000~2,790,000원',
+    features:'대용량얼음, 초고온수, 스탠드형, 방문관리',
+    tags:['대용량얼음','초고온수','스탠드형','업소용'] },
+
+  { brand:'쿠쿠홈시스', series:'빌트인 (언더싱크)', type:'빌트인정수기', tier:'고가',
+    x:52, y:58, size:2,
+    rental:'40,900원', lump:'2,450,000원',
+    features:'스팀100 빌트인, 언더싱크 설치, 스팀살균',
+    tags:['빌트인','언더싱크','스팀살균'] },
+
+  // ── 교원웰스 ──
+  { brand:'교원웰스', series:'미미 (미니 무전원)', type:'정수전용', tier:'저가',
+    x:14, y:18, size:1,
+    rental:'15,900원', lump:'렌탈 전용',
+    features:'미니사이즈, 무전원, 3타입 설치',
+    tags:['무전원','미니','3타입설치'] },
+
+  { brand:'교원웰스', series:'슈퍼쿨링 라인 (미네랄 직수)', type:'냉온정수기', tier:'중가',
+    x:30, y:60, size:4,
+    rental:'24,900~34,900원', lump:'렌탈 전용',
+    features:'미네랄필터, 멀티쿨링, 체온수(36.5도), 직수',
+    tags:['미네랄필터','멀티쿨링','체온수','직수'] },
+
+  { brand:'교원웰스', series:'슬림원 (이지다이얼)', type:'냉온정수기', tier:'중가',
+    x:38, y:52, size:2,
+    rental:'32,900원', lump:'렌탈 전용',
+    features:'미네랄, 이지다이얼, 콤팩트',
+    tags:['미네랄','이지다이얼'] },
+
+  { brand:'교원웰스', series:'아이스원 (미네랄 얼음)', type:'얼음정수기', tier:'고가',
+    x:56, y:75, size:1,
+    rental:'49,900원', lump:'렌탈 전용',
+    features:'미네랄 얼음, 대용량 아이스룸, 콤팩트',
+    tags:['미네랄얼음','대용량아이스룸'] },
+
+  { brand:'교원웰스', series:'RO 스탠드 라인 (중·대형)', type:'스탠드형', tier:'고가',
+    x:58, y:65, size:4,
+    rental:'38,900~56,900원', lump:'렌탈 전용',
+    features:'RO필터, 스탠드형, 대용량, 업소용 물병 지원',
+    tags:['RO필터','스탠드형','대용량','업소지원'] },
+
+  { brand:'교원웰스', series:'RO 데스크탑 (WM071)', type:'냉온정수기', tier:'중가',
+    x:38, y:44, size:1,
+    rental:'32,900원', lump:'렌탈 전용',
+    features:'RO필터, 이지다이얼, 온수안전',
+    tags:['RO필터','이지다이얼'] },
+
+  // ── LG전자 ──
+  { brand:'LG전자', series:'라이트온 (초소형·정수전용)', type:'정수전용', tier:'중가',
+    x:42, y:38, size:2,
+    rental:'772,900~861,200원/년', lump:'구독 전용',
+    features:'초소형, 직수, 고온살균, IoT, 오브제 디자인',
+    tags:['초소형','직수','고온살균','IoT','오브제'] },
+
+  { brand:'LG전자', series:'맞춤 lite (기본 냉온정)', type:'냉온정수기', tier:'고가',
+    x:62, y:62, size:3,
+    rental:'992,400~1,393,200원/년', lump:'구독 전용',
+    features:'직수, 고온살균, IoT ThinQ, 오브제',
+    tags:['직수','고온살균','IoT','오브제'] },
+
+  { brand:'LG전자', series:'맞춤 출수 (무빙탭)', type:'냉온정수기', tier:'고가',
+    x:72, y:78, size:4,
+    rental:'1,393,200~1,783,800원/년', lump:'구독 전용',
+    features:'상하 무빙탭, 미세출수, 고온살균, IoT, 음성인식',
+    tags:['무빙탭','미세출수','IoT','음성인식','오브제'] },
+
+  { brand:'LG전자', series:'상하좌우 무빙 라인', type:'냉온정수기', tier:'고가',
+    x:64, y:82, size:3,
+    rental:'1,093,700~1,284,400원/년', lump:'구독 전용',
+    features:'4방향 무빙탭, 고온살균, IoT',
+    tags:['4방향무빙','고온살균','IoT'] },
+
+  { brand:'LG전자', series:'음성인식·최상위 라인', type:'냉온정수기', tier:'최고가',
+    x:84, y:88, size:3,
+    rental:'1,558,700~1,783,800원/년', lump:'구독 전용',
+    features:'음성인식, 상하무빙, IoT, 미세출수, 오브제 컬렉션',
+    tags:['음성인식','무빙탭','IoT','오브제','플래그십'] },
+
+  { brand:'LG전자', series:'빌트인 (언더싱크)', type:'빌트인', tier:'최고가',
+    x:82, y:68, size:2,
+    rental:'1,617,300원/년', lump:'구독 전용',
+    features:'빌트인, 직수, IoT, 오브제',
+    tags:['빌트인','직수','IoT','오브제'] },
+
+  { brand:'LG전자', series:'듀얼 세척수 라인', type:'냉온정수기+세척수', tier:'최고가',
+    x:86, y:92, size:3,
+    rental:'1,345,800~1,768,000원/년', lump:'구독 전용',
+    features:'클린세척수, 듀얼 스윙, 고온살균, IoT',
+    tags:['세척수기능','듀얼스윙','고온살균','IoT'] },
+
+  { brand:'LG전자', series:'오브제 얼음정수기', type:'얼음정수기', tier:'최고가',
+    x:88, y:96, size:3,
+    rental:'1,868,400~2,541,700원/년', lump:'구독 전용',
+    features:'얼음(345알/일), 직수, 고온살균, IoT, 음성인식',
+    tags:['얼음','직수','고온살균','IoT','오브제'] },
+
+  { brand:'LG전자', series:'슬림·일반 스탠드', type:'스탠드형', tier:'고가',
+    x:68, y:55, size:2,
+    rental:'1,204,400~2,042,300원/년', lump:'구독 전용',
+    features:'직수, UF필터, 스탠드형, IoT, 고온살균',
+    tags:['스탠드형','직수','IoT','고온살균'] },
+
+  // ── SK매직 ──
+  { brand:'SK매직', series:'에코미니·언더싱크 (정수전용)', type:'정수전용', tier:'저가',
+    x:17, y:16, size:3,
+    rental:'13,900~18,900원', lump:'별도 구매',
+    features:'무전원, 정수전용, 언더싱크, 셀프관리',
+    tags:['무전원','정수전용','언더싱크'] },
+
+  { brand:'SK매직', series:'초소형 라이트·직수 (냉온정)', type:'냉온정수기', tier:'저가',
+    x:18, y:50, size:4,
+    rental:'13,200~15,900원', lump:'별도 구매',
+    features:'초소형, 직수, UV살균, 셀프관리, IoT',
+    tags:['초소형','직수','UV살균','IoT'] },
+
+  { brand:'SK매직', series:'초소형 플러스·투워터', type:'냉온정수기', tier:'중가',
+    x:24, y:62, size:3,
+    rental:'17,200~19,950원', lump:'별도 구매',
+    features:'직수, UV살균, IoT, 2수질 추출(투워터)',
+    tags:['직수','UV살균','IoT','투워터'] },
+
+  { brand:'SK매직', series:'원코크 얼음 라인 (방문형)', type:'얼음정수기', tier:'중가',
+    x:30, y:80, size:3,
+    rental:'22,950~25,200원', lump:'별도 구매',
+    features:'얼음+온수+냉수, UV살균, 방문관리, 직수',
+    tags:['얼음','UV살균','방문관리','직수'] },
+
+  { brand:'SK매직', series:'MEGA ICE (신형 얼음)', type:'얼음정수기', tier:'중가',
+    x:28, y:88, size:2,
+    rental:'21,950~25,950원', lump:'별도 구매',
+    features:'대용량 얼음, UV살균, 최신형, 직수',
+    tags:['대용량얼음','UV살균','최신형','직수'] },
+
+  { brand:'SK매직', series:'뉴슬림·뉴그랜드 (탱크형)', type:'냉온정수기', tier:'중가',
+    x:30, y:40, size:5,
+    rental:'18,900~29,900원', lump:'별도 구매',
+    features:'탱크형, 냉온수, 방문관리, 스탠드형 포함',
+    tags:['탱크형','냉온수','방문관리','스탠드옵션'] },
+
+  { brand:'SK매직', series:'FS 직수얼음 (대형 스탠드)', type:'대형 스탠드 얼음정수기', tier:'고가',
+    x:66, y:82, size:1,
+    rental:'54,900원', lump:'별도 구매',
+    features:'대용량 얼음, 스탠드형, 직수, UV살균, 방문관리',
+    tags:['스탠드형','대용량얼음','UV살균','방문관리'] },
+];
+
+const allBrands = [...new Set(products.map(p => p.brand))];
+let activeBrands = new Set(allBrands);
+
+const filterRow = document.getElementById('filterRow');
+const plot = document.getElementById('plotArea');
+const legend = document.getElementById('legend');
+const tip = document.getElementById('tooltip');
+
+function addFilter(label, onClick, isAll) {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn' + (isAll ? ' active' : '');
+  btn.textContent = label;
+  if (!isAll) {
+    const c = brandColors[label];
+    if (c) btn.style.borderColor = c.border;
+  }
+  btn.addEventListener('click', onClick);
+  filterRow.appendChild(btn);
+  return btn;
+}
+
+// All button
+const allBtn = addFilter('전체 보기', () => {
+  activeBrands = new Set(allBrands);
+  document.querySelectorAll('.filter-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === 0);
+    b.style.background = i === 0 ? '#444441' : '';
+    b.style.color = i === 0 ? '#fff' : '';
+  });
+  render();
+}, true);
+allBtn.style.background = '#444441';
+allBtn.style.color = '#fff';
+
+// Per brand buttons
+allBrands.forEach(brand => {
+  const c = brandColors[brand];
+  const btn = addFilter(brand, () => {
+    activeBrands = new Set([brand]);
+    document.querySelectorAll('.filter-btn').forEach((b, i) => {
+      const isThis = b.textContent === brand;
+      b.classList.toggle('active', isThis);
+      b.style.background = isThis ? c.border : '';
+      b.style.color = isThis ? '#fff' : '';
+      if (i === 0) { b.classList.remove('active'); b.style.background = ''; b.style.color = ''; }
+    });
+    render();
+  }, false);
+});
+
+function getSize(n) {
+  return Math.round(36 + Math.sqrt(n) * 16);
+}
+
+function render() {
+  plot.querySelectorAll('.bubble').forEach(b => b.remove());
+
+  const visible = products.filter(p => activeBrands.has(p.brand));
+
+  visible.forEach(p => {
+    const c = brandColors[p.brand];
+    const size = getSize(p.size);
+
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.style.cssText = `
+      left: ${p.x}%;
+      top: ${100 - p.y}%;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${c.bg};
+      border-color: ${c.border};
+    `;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'bubble-label';
+    lbl.style.color = c.text;
+    lbl.style.fontSize = Math.max(9, Math.min(12, size / 5.5)) + 'px';
+    const shortName = p.series.split(' (')[0].replace(p.brand, '').trim();
+    lbl.textContent = shortName.length > 12 ? shortName.slice(0, 11) + '…' : shortName;
+    el.appendChild(lbl);
+
+    el.addEventListener('mouseenter', e => {
+      tip.style.display = 'block';
+      const tagsHtml = p.tags.map(t => `<span class="ttag" style="background:${c.bg};color:${c.text};border:1px solid ${c.border}">${t}</span>`).join('');
+      tip.innerHTML = `
+        <div class="tooltip-brand" style="color:${c.border}">${p.brand}</div>
+        <div class="tooltip-series">${p.series}</div>
+        <div class="tooltip-hr"></div>
+        <div class="tooltip-row"><span class="tooltip-key">제품유형</span><span class="tooltip-val">${p.type}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">가격대</span><span class="tooltip-val">${p.tier}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">월 렌탈</span><span class="tooltip-val">${p.rental}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">일시불</span><span class="tooltip-val">${p.lump}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">SKU 수</span><span class="tooltip-val">${p.size}종</span></div>
+        <div class="tooltip-hr"></div>
+        <div style="font-size:11px;color:#5f5e5a;margin-bottom:7px;">${p.features}</div>
+        <div class="tooltip-tags">${tagsHtml}</div>`;
+      positionTip(e);
+    });
+    el.addEventListener('mousemove', positionTip);
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+
+    plot.appendChild(el);
+  });
+}
+
+function positionTip(e) {
+  const tw = 270, th = 220;
+  let lx = e.clientX + 16;
+  let ty = e.clientY - 10;
+  if (lx + tw > window.innerWidth) lx = e.clientX - tw - 10;
+  if (ty + th > window.innerHeight) ty = e.clientY - th - 10;
+  tip.style.left = lx + 'px';
+  tip.style.top = ty + 'px';
+}
+
+// Legend
+allBrands.forEach(brand => {
+  const c = brandColors[brand];
+  const count = products.filter(p => p.brand === brand).length;
+  legend.innerHTML += `
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${c.bg};border-color:${c.border}"></span>
+      <span style="font-weight:500;color:${c.text}">${brand}</span>
+      <span style="color:#888780;font-size:11px">${count}개 제품군</span>
+    </div>`;
+});
+
+render();
+</script>
+</body>
+</html>
